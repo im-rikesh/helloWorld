@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"syscall"
+"time"
 
 	"github.com/containerd/console"
 	"github.com/moby/sys/user"
@@ -75,6 +76,15 @@ type initConfig struct {
 
 // Init is part of "runc init" implementation.
 func Init() {
+
+	startTime_In := time.Now()
+fmt.Printf("\n Start time of libcontainer.Init: %s This function never returns.\n", startTime_In)
+
+pid_In := os.Getpid()
+ppid_In := syscall.Getppid()
+fmt.Println("Process ID of libcontainer.Init:", pid_In)
+fmt.Println("Parent Process ID of libcontainer.Init:", ppid_In)
+
 	runtime.GOMAXPROCS(1)
 	runtime.LockOSThread()
 
@@ -90,6 +100,15 @@ func Init() {
 	}
 	// Normally, StartInitialization() never returns, meaning
 	// if we are here, it had failed.
+
+stopTime_In := time.Now()
+duration_In := stopTime_In.Sub(startTime_In)
+
+fmt.Printf("Stop time of libcontainer.Init: %s\n", stopTime_In)
+
+fmt.Printf("Duration of libcontainer.Init: %s\n", duration_In)
+
+
 	os.Exit(255)
 }
 
@@ -97,6 +116,16 @@ func Init() {
 // error, it means the initialization has failed. If the error is returned,
 // it means the error can not be communicated back to the parent.
 func startInitialization() (retErr error) {
+
+startTime_sI := time.Now()
+fmt.Printf("\n Start time of libcontainer.startInitialization: %s \n", startTime_sI)
+
+pid_sI := os.Getpid()
+ppid_sI := syscall.Getppid()
+fmt.Println("Process ID of libcontainer.startInitialization:", pid_sI)
+fmt.Println("Parent Process ID of libcontainer.startInitialization:", ppid_sI)
+
+
 	// Get the synchronisation pipe.
 	envSyncPipe := os.Getenv("_LIBCONTAINER_SYNCPIPE")
 	syncPipeFd, err := strconv.Atoi(envSyncPipe)
@@ -203,11 +232,29 @@ func startInitialization() (retErr error) {
 		return err
 	}
 
+stopTime_sI := time.Now()
+duration_sI := stopTime_sI.Sub(startTime_sI)
+
+fmt.Printf("Stop time of libcontainer.startInitialization: %s\n", stopTime_sI)
+
+fmt.Printf("Duration of libcontainer.startInitialization: %s\n", duration_sI)
+
+
 	// If init succeeds, it will not return, hence none of the defers will be called.
 	return containerInit(it, &config, syncPipe, consoleSocket, pidfdSocket, fifoFile, logPipe)
 }
 
 func containerInit(t initType, config *initConfig, pipe *syncSocket, consoleSocket, pidfdSocket, fifoFile, logPipe *os.File) error {
+
+startTime_cI := time.Now()
+fmt.Printf("\n Start time of libcontainer.containerInit: %s \n", startTime_cI)
+
+pid_cI := os.Getpid()
+ppid_cI := syscall.Getppid()
+fmt.Println("Process ID of libcontainer.containerInit:", pid_cI)
+fmt.Println("Parent Process ID of libcontainer.containerInit:", ppid_cI)
+
+
 	env, homeSet, err := prepareEnv(config.Env)
 	if err != nil {
 		return err
@@ -228,6 +275,15 @@ func containerInit(t initType, config *initConfig, pipe *syncSocket, consoleSock
 			logPipe:       logPipe,
 			addHome:       !homeSet,
 		}
+
+stopTime_cI := time.Now()
+duration_cI := stopTime_cI.Sub(startTime_cI)
+
+fmt.Printf("Stop time of libcontainer.containerInit (Setns): %s\n", stopTime_cI)
+
+fmt.Printf("Duration of libcontainer.containerInit (Setns): %s\n", duration_cI)
+
+
 		return i.Init()
 	case initStandard:
 		i := &linuxStandardInit{
@@ -240,6 +296,14 @@ func containerInit(t initType, config *initConfig, pipe *syncSocket, consoleSock
 			logPipe:       logPipe,
 			addHome:       !homeSet,
 		}
+
+stopTime_cI := time.Now()
+duration_cI := stopTime_cI.Sub(startTime_cI)
+
+fmt.Printf("Stop time of libcontainer.containerInit (Std): %s\n", stopTime_cI)
+
+fmt.Printf("Duration of libcontainer.containerInit (Std): %s\n", duration_cI)
+
 		return i.Init()
 	}
 	return fmt.Errorf("unknown init type %q", t)

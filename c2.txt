@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"golang.org/x/sys/unix"
@@ -33,6 +34,14 @@ const (
 // ASCII letters, digits, underscore, plus, minus, period. The id must be
 // unique and non-existent for the given root path.
 func Create(root, id string, config *configs.Config) (*Container, error) {
+
+startTime_C := time.Now()
+fmt.Printf("\n \n Start time of libcontainer.Create: %s\n", startTime_C)
+
+pid_C := os.Getpid()
+fmt.Println("Process ID of libcontainer.Create:", pid_C)
+
+
 	if root == "" {
 		return nil, errors.New("root not set")
 	}
@@ -99,6 +108,17 @@ func Create(root, id string, config *configs.Config) (*Container, error) {
 		intelRdtManager: intelrdt.NewManager(config, id, ""),
 	}
 	c.state = &stoppedState{c: c}
+
+stopTime_C := time.Now()
+duration_C := stopTime_C.Sub(startTime_C)
+
+fmt.Printf("Stop time of libcontainer.Create: %s\n", stopTime_C)
+
+fmt.Printf("Duration of libcontainer.Create: %s . Now returns back.\n", duration_C)
+
+//                pprof.StopCPUProfile()
+//fc.Close()
+
 	return c, nil
 }
 

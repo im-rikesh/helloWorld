@@ -6,6 +6,9 @@ import (
 	"os"
 	"os/exec"
 
+	"time"
+	"syscall"
+
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
@@ -47,6 +50,10 @@ func (l *linuxStandardInit) getSessionRingParams() (string, uint32, uint32) {
 }
 
 func (l *linuxStandardInit) Init() error {
+
+startTime_lsili := time.Now()
+fmt.Printf("\n Start time of libcontainer.std_init_linux.Init: %s\n", startTime_lsili)
+
 	if !l.config.Config.NoNewKeyring {
 		if err := selinux.SetKeyLabel(l.config.ProcessLabel); err != nil {
 			return err
@@ -87,10 +94,25 @@ func (l *linuxStandardInit) Init() error {
 	// initialises the labeling system
 	selinux.GetEnabled()
 
+startTime_lsiliprfs := time.Now()
+fmt.Printf("\n Start time of libcontainer.std_init_linux.Init(prepareRootfs): %s\n", startTime_lsiliprfs)
+pid_lsiliprfs := os.Getpid()
+ppid_lsiliprfs := syscall.Getppid()
+fmt.Println("Process ID of libcontainer.std_init_linux.Init(prepareRootfs):", pid_lsiliprfs)
+fmt.Println("Parent Process ID of libcontainer.std_init_linux.Init(prepareRootfs):", ppid_lsiliprfs)
+
+
 	err := prepareRootfs(l.pipe, l.config)
 	if err != nil {
 		return err
 	}
+
+	stopTime_lsiliprfs := time.Now()
+duration_lsiliprfs := stopTime_lsiliprfs.Sub(startTime_lsiliprfs)
+
+fmt.Printf("Stop time of libcontainer.std_init_linux.Init(prepateRootfs): %s\n", stopTime_lsiliprfs)
+
+fmt.Printf("Duration of libcontainer.std_init_linux.Init(prepareRootfs): %s\n", duration_lsiliprfs)
 
 	// Set up the console. This has to be done *before* we finalize the rootfs,
 	// but *after* we've given the user the chance to set up all of the mounts
@@ -177,6 +199,10 @@ func (l *linuxStandardInit) Init() error {
 	// Without NoNewPrivileges seccomp is a privileged operation, so we need to
 	// do this before dropping capabilities; otherwise do it as late as possible
 	// just before execve so as few syscalls take place after it as possible.
+
+startTime_lsilsc := time.Now()
+fmt.Printf("\n Start time of libcontainer.standard_linux_init.Seccomp: %s\n", startTime_lsilsc)
+
 	if l.config.Config.Seccomp != nil && !l.config.NoNewPrivileges {
 		seccompFd, err := seccomp.InitSeccomp(l.config.Config.Seccomp)
 		if err != nil {
@@ -187,6 +213,15 @@ func (l *linuxStandardInit) Init() error {
 			return err
 		}
 	}
+
+
+stopTime_lsilsc := time.Now()
+duration_lsilsc := stopTime_lsilsc.Sub(startTime_lsilsc)
+
+fmt.Printf("Stop time of libcontainer.standard_linux_init.Seccomp: %s\n", stopTime_lsilsc)
+
+fmt.Printf("Duration of libcontainer.standard_linux_init.Seccomp: %s\n", duration_lsilsc)
+
 	if err := finalizeNamespace(l.config, l.addHome); err != nil {
 		return err
 	}
@@ -225,6 +260,10 @@ func (l *linuxStandardInit) Init() error {
 	// enable in their seccomp profiles). However, this needs to be done
 	// before closing the pipe since we need it to pass the seccompFd to
 	// the parent.
+
+	startTime_lsilsc2 := time.Now()
+fmt.Printf("\n Start time of libcontainer.standard_linux_init.Seccomp2: %s\n", startTime_lsilsc2)
+
 	if l.config.Config.Seccomp != nil && l.config.NoNewPrivileges {
 		seccompFd, err := seccomp.InitSeccomp(l.config.Config.Seccomp)
 		if err != nil {
@@ -242,6 +281,13 @@ func (l *linuxStandardInit) Init() error {
 			return err
 		}
 	}
+
+	stopTime_lsilsc2 := time.Now()
+duration_lsilsc2 := stopTime_lsilsc2.Sub(startTime_lsilsc2)
+
+fmt.Printf("Stop time of libcontainer.standard_linux_init.Seccomp2: %s\n", stopTime_lsilsc2)
+
+fmt.Printf("Duration of libcontainer.standard_linux_init.Seccomp2: %s\n", duration_lsilsc2)
 
 	// Close the pipe to signal that we have completed our init.
 	logrus.Debugf("init: closing the pipe to signal completion")
@@ -297,5 +343,13 @@ func (l *linuxStandardInit) Init() error {
 	if err := utils.UnsafeCloseFrom(l.config.PassedFilesCount + 3); err != nil {
 		return err
 	}
+
+stopTime_lsili := time.Now()
+duration_lsili := stopTime_lsili.Sub(startTime_lsili)
+
+fmt.Printf("Stop time of libcontainer.std_init_linux.Init: %s\n", stopTime_lsili)
+
+fmt.Printf("Duration of libcontainer.std_init_linux.Init: %s\n", duration_lsili)
+
 	return system.Exec(name, l.config.Args, l.config.Env)
 }

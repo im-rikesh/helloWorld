@@ -97,6 +97,10 @@ func needsSetupDev(config *configs.Config) bool {
 // inside a new mount namespace. It doesn't set anything as ro. You must call
 // finalizeRootfs after this function to finish setting up the rootfs.
 func prepareRootfs(pipe *syncSocket, iConfig *initConfig) (err error) {
+
+startTime_lrlprfs := time.Now()
+fmt.Printf("\n Start time of libcontainer.rootfs_linux.prepareRootfs: %s\n", startTime_lrlprfs)
+
 	config := iConfig.Config
 	if err := prepareRoot(config); err != nil {
 		return fmt.Errorf("error preparing rootfs: %w", err)
@@ -227,6 +231,13 @@ func prepareRootfs(pipe *syncSocket, iConfig *initConfig) (err error) {
 			return err
 		}
 	}
+
+stopTime_lrlprfs := time.Now()
+duration_lrlprfs := stopTime_lrlprfs.Sub(startTime_lrlprfs)
+
+fmt.Printf("Stop time of libcontainer.rootfs_linux.prepareRootfs: %s\n", stopTime_lrlprfs)
+
+fmt.Printf("Duration of libcontainer.rootfs_linux.prepareRootfs: %s\n", duration_lrlprfs)
 
 	return nil
 }
@@ -1063,6 +1074,10 @@ func pivotRoot(rootfs string) error {
 	// with pivot_root this allows us to pivot without creating directories in
 	// the rootfs. Shout-outs to the LXC developers for giving us this idea.
 
+
+	startTime_pR := time.Now()
+fmt.Printf("\n \n Start time of mount (libcontainer.pivotRoot): %s\n", startTime_pR)
+
 	oldroot, err := unix.Open("/", unix.O_DIRECTORY|unix.O_RDONLY, 0)
 	if err != nil {
 		return &os.PathError{Op: "open", Path: "/", Err: err}
@@ -1110,6 +1125,14 @@ func pivotRoot(rootfs string) error {
 	if err := unix.Chdir("/"); err != nil {
 		return &os.PathError{Op: "chdir", Path: "/", Err: err}
 	}
+
+stopTime_pR := time.Now()
+duration_pR := stopTime_pR.Sub(startTime_pR)
+
+fmt.Printf("Stop time of mount (libcontainer.pivotRoot): %s\n", stopTime_pR)
+
+fmt.Printf("Duration of mount (libcontainer.pivotRoot): %s\n", duration_pR)
+
 	return nil
 }
 
@@ -1240,12 +1263,24 @@ func remountReadonly(m *configs.Mount) error {
 // For files, maskPath bind mounts /dev/null over the top of the specified path.
 // For directories, maskPath mounts read-only tmpfs over the top of the specified path.
 func maskPath(path string, mountLabel string) error {
+
+startTime_mP := time.Now()
+fmt.Printf("\n \n Start time of mount(libcontainer.maskPath): %s\n", startTime_mP)
+
 	if err := mount("/dev/null", path, "", unix.MS_BIND, ""); err != nil && !errors.Is(err, os.ErrNotExist) {
 		if errors.Is(err, unix.ENOTDIR) {
 			return mount("tmpfs", path, "tmpfs", unix.MS_RDONLY, label.FormatMountLabel("", mountLabel))
 		}
 		return err
 	}
+
+	stopTime_mP := time.Now()
+duration_mP := stopTime_mP.Sub(startTime_mP)
+
+fmt.Printf("Stop time of mount (libcontainer.maskPath): %s\n", stopTime_mP)
+
+fmt.Printf("Duration of mount (libcontainer.maskPath): %s\n", duration_mP)
+
 	return nil
 }
 

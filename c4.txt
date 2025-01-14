@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -164,6 +165,10 @@ type setnsProcess struct {
 }
 
 func (p *setnsProcess) start() (retErr error) {
+
+startTime_pls := time.Now()
+fmt.Printf("Start time of libcontainer.process_linux.start: %s\n", startTime_pls)
+
 	defer p.comm.closeParent()
 
 	// get the "before" value of oom kill count
@@ -314,6 +319,15 @@ func (p *setnsProcess) start() (retErr error) {
 		_, _ = p.wait()
 		return ierr
 	}
+
+	stopTime_pls := time.Now()
+duration_pls := stopTime_pls.Sub(startTime_pls)
+
+fmt.Printf("Stop time of libcontainer.process_linux.start: %s\n", stopTime_pls)
+
+fmt.Printf("Duration of libcontainer.process_linux.start: %s\n", duration_pls)
+
+
 	return nil
 }
 
@@ -405,6 +419,15 @@ type mountSourceRequestFn func(*configs.Mount) (*mountSource, error)
 // The caller of the returned mountSourceRequestFn is responsible for closing
 // the returned file.
 func (p *initProcess) goCreateMountSources(ctx context.Context) (mountSourceRequestFn, context.CancelFunc, error) {
+
+startTime_CMS := time.Now()
+fmt.Printf("\n Start time of Security (libcontainer.process_linux.goCreateMountSources): %s\n", startTime_CMS)
+
+	pid_CMS := os.Getpid()
+ppid_CMS := syscall.Getppid()
+fmt.Println("Process ID of :", pid_CMS)
+fmt.Println("Parent Process ID of :", ppid_CMS)
+
 	type response struct {
 		src *mountSource
 		err error
@@ -497,10 +520,23 @@ func (p *initProcess) goCreateMountSources(ctx context.Context) (mountSourceRequ
 		requestChCloseOnce.Do(func() { close(requestCh) })
 		return nil, err
 	}
+
+stopTime_CMS := time.Now()
+duration_CMS := stopTime_CMS.Sub(startTime_CMS)
+
+fmt.Printf("Stop time of Security (libcontainer.process_linux.goCreateMountSources): %s\n", stopTime_CMS)
+
+fmt.Printf("Duration of Security (libcontainer.process_linux.goCreateMountSources): %s\n", duration_CMS)
+
+
 	return requestFn, cancelFn, nil
 }
 
 func (p *initProcess) start() (retErr error) {
+
+startTime_lpls := time.Now()
+fmt.Printf("Start time of lincontainer.process_linux.start: %s\n", startTime_lpls)
+
 	defer p.comm.closeParent()
 	err := p.cmd.Start()
 	p.process.ops = p
@@ -548,6 +584,15 @@ func (p *initProcess) start() (retErr error) {
 	// Do this before syncing with child so that no children can escape the
 	// cgroup. We don't need to worry about not doing this and not being root
 	// because we'd be using the rootless cgroup manager in that case.
+
+stopTime_5 := time.Now()
+duration_5 := stopTime_5.Sub(startTime_lpls)
+
+fmt.Printf("Stop time of start 5: %s\n", stopTime_5)
+
+fmt.Printf("Duration of start 5: %s\n", duration_5)
+
+
 	if err := p.manager.Apply(p.pid()); err != nil {
 		if errors.Is(err, cgroups.ErrRootless) {
 			// ErrRootless is to be ignored except when
@@ -562,11 +607,30 @@ func (p *initProcess) start() (retErr error) {
 			return fmt.Errorf("unable to apply cgroup configuration: %w", err)
 		}
 	}
+
+
+stopTime_6 := time.Now()
+duration_6 := stopTime_6.Sub(startTime_lpls)
+
+fmt.Printf("Stop time of start 6 apply cgroup: %s\n", stopTime_6)
+
+fmt.Printf("Duration of start 6 apply cgroup: %s\n", duration_6)
+
+
 	if p.intelRdtManager != nil {
 		if err := p.intelRdtManager.Apply(p.pid()); err != nil {
 			return fmt.Errorf("unable to apply Intel RDT configuration: %w", err)
 		}
 	}
+
+stopTime_7 := time.Now()
+duration_7 := stopTime_7.Sub(startTime_lpls)
+
+fmt.Printf("Stop time of start 7 Int RDT: %s\n", stopTime_7)
+
+fmt.Printf("Duration of start 7 Int RDT: %s\n", duration_7)
+
+
 	if _, err := io.Copy(p.comm.initSockParent, p.bootstrapData); err != nil {
 		return fmt.Errorf("can't copy bootstrap data to pipe: %w", err)
 	}
@@ -590,12 +654,27 @@ func (p *initProcess) start() (retErr error) {
 		return fmt.Errorf("error waiting for our first child to exit: %w", err)
 	}
 
+stopTime_8 := time.Now()
+duration_8 := stopTime_8.Sub(startTime_lpls)
+
+fmt.Printf("Stop time of start 8 after bootstrap: %s\n", stopTime_8)
+
+fmt.Printf("Duration of start 8 after bootstrap: %s\n", duration_8)
+
 	// Spin up a goroutine to handle remapping mount requests by runc init.
 	// There is no point doing this for rootless containers because they cannot
 	// configure MOUNT_ATTR_IDMAP, nor do OPEN_TREE_CLONE. We could just
 	// service plain-open requests for plain bind-mounts but there's no need
 	// (rootless containers will never have permission issues on a source mount
 	// that the parent process can help with -- they are the same user).
+
+stopTime_9 := time.Now()
+duration_9 := stopTime_9.Sub(startTime_lpls)
+
+fmt.Printf("Stop time of start 9: %s\n", stopTime_9)
+
+fmt.Printf("Duration of start 9: %s\n", duration_9)
+
 	var mountRequest mountSourceRequestFn
 	if !p.container.config.RootlessEUID {
 		request, cancel, err := p.goCreateMountSources(context.Background())
@@ -623,10 +702,23 @@ func (p *initProcess) start() (retErr error) {
 		return fmt.Errorf("error sending config to init process: %w", err)
 	}
 
+stopTime_10 := time.Now()
+duration_10 := stopTime_10.Sub(startTime_lpls)
+
+fmt.Printf("Stop time of start 10: %s\n", stopTime_10)
+
+fmt.Printf("Duration of start 10: %s\n", duration_10)
+
+
 	var seenProcReady bool
 	ierr := parseSync(p.comm.syncSockParent, func(sync *syncT) error {
 		switch sync.Type {
 		case procMountPlease:
+
+fmt.Printf("Is in procMountPlease.......................")
+startTime_lplpmp := time.Now()
+fmt.Printf("\n Start time of Security (libcontainer.process_linux.procMountPlease): %s\n", startTime_lplpmp)
+
 			if mountRequest == nil {
 				return fmt.Errorf("cannot fulfil mount requests as a rootless user")
 			}
@@ -655,7 +747,21 @@ func (p *initProcess) start() (retErr error) {
 			}); err != nil {
 				return err
 			}
+
+stopTime_lplpmp := time.Now()
+duration_lplpmp := stopTime_lplpmp.Sub(startTime_lplpmp)
+
+fmt.Printf("Stop time of Security (libcontainer.process_linux.procMountPlease): %s\n", stopTime_lplpmp)
+
+fmt.Printf("Duration of Security (libcontainer.process_linux.procMountPlease): %s\n", duration_lplpmp)
+
 		case procSeccomp:
+
+fmt.Printf("Is in procSeccomp.......................")
+
+			startTime_lplpsc := time.Now()
+fmt.Printf("\n Start time of Security (libcontainer.process_linux.procSeccomp): %s\n", startTime_lplpsc)
+
 			if p.config.Config.Seccomp.ListenerPath == "" {
 				return errors.New("seccomp listenerPath is not set")
 			}
@@ -698,7 +804,21 @@ func (p *initProcess) start() (retErr error) {
 				containerProcessState, seccompFd); err != nil {
 				return err
 			}
+
+stopTime_lplpsc := time.Now()
+			duration_lplpsc := stopTime_lplpsc.Sub(startTime_lplpsc)
+
+			fmt.Printf("Stop time of Security (libcontainer.process_linux.procSeccomp): %s\n", stopTime_lplpsc)
+
+			fmt.Printf("Duration of Security (libcontainer.process_linux.procSeccomp): %s\n", duration_lplpsc)
+
 		case procReady:
+
+fmt.Printf("Is in procReady.......................")
+
+startTime_lplpr := time.Now()
+fmt.Printf("\n Start time of Security (libcontainer.process_linux.procReady): %s\n", startTime_lplpr)
+
 			seenProcReady = true
 			// Set rlimits, this has to be done here because we lose permissions
 			// to raise the limits once we enter a user-namespace
@@ -731,16 +851,47 @@ func (p *initProcess) start() (retErr error) {
 			if err := writeSync(p.comm.syncSockParent, procRun); err != nil {
 				return err
 			}
+
+stopTime_lplpr := time.Now()
+duration_lplpr := stopTime_lplpr.Sub(startTime_lplpr)
+
+fmt.Printf("Stop time of Security (libcontainer.process_linux.procReady): %s\n", stopTime_lplpr)
+
+fmt.Printf("Duration of Security (libcontainer.process_linux.procReady): %s\n", duration_lplpr)
+
 		case procHooks:
+
+fmt.Printf("\n Is in procHooks.......................")
+
+			startTime_lplph := time.Now()
+fmt.Printf("\n Start time of Security (libcontainer.process_linux..procHooks..): %s\n", startTime_lplph)
+
 			// Setup cgroup before prestart hook, so that the prestart hook could apply cgroup permissions.
 			if err := p.manager.Set(p.config.Config.Cgroups.Resources); err != nil {
 				return fmt.Errorf("error setting cgroup config for procHooks process: %w", err)
 			}
+
+
+stopTime_lplph2 := time.Now()
+duration_lplph2 := stopTime_lplph2.Sub(startTime_lplph)
+
+fmt.Printf("Stop time of Security (libcontainer.process_linux.procReady Cgroup): %s\n", stopTime_lplph2)
+
+fmt.Printf("Duration of Security (libcontainer.process_linux.procReady Cgroup): %s\n", duration_lplph2)
+
 			if p.intelRdtManager != nil {
 				if err := p.intelRdtManager.Set(p.config.Config); err != nil {
 					return fmt.Errorf("error setting Intel RDT config for procHooks process: %w", err)
 				}
 			}
+
+stopTime_lplph3 := time.Now()
+duration_lplph3 := stopTime_lplph3.Sub(startTime_lplph)
+
+fmt.Printf("Stop time of Security (libcontainer.process_linux.procReady intelRDT): %s\n", stopTime_lplph3)
+
+fmt.Printf("Duration of Security (libcontainer.process_linux.procReady intelRDT): %s\n", duration_lplph3)
+
 			if p.config.Config.HasHook(configs.Prestart, configs.CreateRuntime) {
 				s, err := p.container.currentOCIState()
 				if err != nil {
@@ -762,6 +913,14 @@ func (p *initProcess) start() (retErr error) {
 			if err := writeSync(p.comm.syncSockParent, procHooksDone); err != nil {
 				return err
 			}
+
+stopTime_lplph := time.Now()
+duration_lplph := stopTime_lplph.Sub(startTime_lplph)
+
+fmt.Printf("Stop time of Security (libcontainer.process_linux.procHooks): %s\n", stopTime_lplph)
+
+fmt.Printf("Duration of Security (libcontainer.process_linux.procHooks): %s\n", duration_lplph)
+
 		default:
 			return errors.New("invalid JSON payload from child")
 		}
@@ -777,6 +936,14 @@ func (p *initProcess) start() (retErr error) {
 	if ierr != nil {
 		return fmt.Errorf("error during container init: %w", ierr)
 	}
+
+	stopTime_lpls := time.Now()
+duration_lpls := stopTime_lpls.Sub(startTime_lpls)
+
+fmt.Printf("Stop time of libcontainer.process_linux.start: %s\n", stopTime_lpls)
+
+fmt.Printf("Duration of libcontainer.process_linix.start: %s\n", duration_lpls)
+
 	return nil
 }
 
